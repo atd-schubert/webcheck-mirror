@@ -6,7 +6,7 @@ var createWriteStream = require('fs').createWriteStream;
 var path = require('path');
 var url = require('url');
 var mkdirp = require('mkdirp');
-var mime = require('mime-types')
+var mime = require('mime-types');
 
 var pkg = require('./package.json');
 /**
@@ -27,12 +27,12 @@ var emptyFilter = {
  * @author Arne Schubert <atd.schubert@gmail.com>
  * @param {{}} [opts] - Options for this plugin
  * @param {string} [opts.dest] - Destination path for mirroring
- * @param {string} [opts.filterContentType] - Mirror only matching content-type
- * @param {string} [opts.filterStatusCode] - Mirror only matching HTTP status code
- * @param {string} [opts.filterUrl] - Mirror only matching url
- * @param {string} [opts.ignoreQuery=true] - Ignore query part of url when mirroring
- * @param {string} [opts.addFileExtension] - Always add a file extension from mime-type in content-type header
- * @param {string} [opts.proofFileExtension] - Proof if content-type matches mime-type, otherwise add file extension from content-type header
+ * @param {RegExp|{test:Function}} [opts.filterContentType] - Mirror only matching content-type
+ * @param {RegExp|{test:Function}} [opts.filterStatusCode] - Mirror only matching HTTP status code
+ * @param {RegExp|{test:Function}} [opts.filterUrl] - Mirror only matching url
+ * @param {boolean} [opts.ignoreQuery=true] - Ignore query part of url when mirroring
+ * @param {boolean} [opts.addFileExtension] - Always add a file extension from mime-type in content-type header
+ * @param {boolean} [opts.proofFileExtension] - Proof if content-type matches mime-type, otherwise add file extension from content-type header
  * @param {string} [opts.indexName="index"] - Fallback for index pages
  * @augments Webcheck.Plugin
  * @constructor
