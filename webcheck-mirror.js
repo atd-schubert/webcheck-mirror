@@ -44,7 +44,7 @@ var MirrorPlugin = function (opts) {
     opts.dest = opts.dest || process.cwd() + '/mirror-out';
 
     opts.filterContentType = opts.filterContentType || emptyFilter;
-    opts.filterStatusCode = opts.filterStatusCode || emptyFilter;
+    opts.filterStatusCode = opts.filterStatusCode || /^2/;
     opts.filterUrl = opts.filterUrl || emptyFilter;
 
     opts.addFileExtension = opts.addFileExtension || false;
@@ -54,7 +54,7 @@ var MirrorPlugin = function (opts) {
         opts.indexName = 'index';
     }
     if (!opts.hasOwnProperty('ignoreQuery')) {
-        opts.ignoreQuery = true;
+        opts.ignoreQuery = false;
     }
 
     this.middleware = function (result, next) {
@@ -71,11 +71,12 @@ var MirrorPlugin = function (opts) {
         urlInfo.port = urlInfo.port || '';
         urlInfo.search = urlInfo.search || '';
 
-        if (opts.addFileExtension) {
-            urlInfo.pathname = urlInfo.pathname + mime(result.response.headers['content-type']);
-        }
         if (urlInfo.pathname === '/') {
             urlInfo.pathname = '/' + opts.indexName;
+        }
+
+        if (opts.addFileExtension) {
+            urlInfo.pathname = urlInfo.pathname + '.' + mime.extension(result.response.headers['content-type']);
         }
 
         if (opts.ignoreQuery) {
@@ -84,21 +85,24 @@ var MirrorPlugin = function (opts) {
             pathInfo = path.parse(path.resolve(opts.dest, urlInfo.protocol, urlInfo.hostname, urlInfo.port, '.' + urlInfo.pathname + urlInfo.search));
         }
 
-        if (opts.proofFileExtension && (pathInfo.ext !== '.' + mime(result.response.headers['content-type']))) {
-            pathInfo.ext += mime(result.response.headers['content-type']);
+        if (opts.proofFileExtension && (pathInfo.ext !== '.' + mime.extension(result.response.headers['content-type']))) {
+            pathInfo.ext += '.' + mime.extension(result.response.headers['content-type']);
         }
 
-        mkdirp(pathInfo.dir + '/');
+        mkdirp(pathInfo.dir + '/', function (err) {
+            if (err) {
+                return next(err);
+            }
+            try {
+                stream = createWriteStream(path.resolve(pathInfo.dir, pathInfo.name + pathInfo.ext));
+            } catch (error) {
+                return next(error);
+            }
 
-        try {
-            stream = createWriteStream(path.resolve(pathInfo.dir, pathInfo.name + pathInfo.ext));
-        } catch (err) {
-            return next(err);
-        }
+            result.response.pipe(stream);
 
-        result.response.pipe(stream);
-
-        return next();
+            return next();
+        });
     };
 };
 
