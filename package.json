@@ -1,6 +1,6 @@
 {
   "name": "webcheck-mirror",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A mirroring plugin for webcheck",
   "main": "webcheck-mirror.js",
   "directories": {
@@ -9,15 +9,19 @@
   "dependencies": {
     "mime-types": "^2.1.6",
     "mkdirp": "^0.5.1",
-    "webcheck": "~1.0.0"
+    "webcheck": "~1.1.0"
   },
   "devDependencies": {
     "express": "^4.13.3",
     "freeport": "^1.0.5",
-    "rimraf": "^2.4.3"
+    "rimraf": "^2.4.3",
+    "typescript": "^1.8.10"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "tsc": "tsc",
+    "tsc:w": "tsc -w",
+    "prepublish": "tsc; ts-npm-lint --fix-typings"
   },
   "repository": {
     "type": "git",

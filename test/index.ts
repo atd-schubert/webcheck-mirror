@@ -1,47 +1,47 @@
 /*jslint node:true*/
+/// <reference path="../typings/main.d.ts" />
 
-/*global describe, it, before, after, beforeEach, afterEach*/
+import { MirrorPlugin } from '../webcheck-mirror';
+import {Webcheck} from 'webcheck';
+import * as freeport from 'freeport';
+import * as express from 'express';
+import * as fs from 'fs';
+import * as rimraf from 'rimraf';
 
-'use strict';
+/* tslint:disable:align */
 
-var MirrorPlugin = require('../');
 
-var Webcheck = require('webcheck');
-var freeport = require('freeport');
-var express = require('express');
-var fs = require('fs');
-var rimraf = require('rimraf');
 
-describe('Mirror Plugin', function () {
-    var port;
-    before(function (done) {
-        var app = express();
+describe('Mirror Plugin', (): void => {
+    var port: number;
+    before((done: MochaDone): void => {
+        var app: express.Application = express();
 
         /*jslint unparam: true*/
-        app.get('/', function (req, res) {
+        app.get('/', (req: express.Request, res: express.Response): void => {
             res.send('<html><head></head><body><p>index</p></body></html>');
         });
-        app.get('/index.html', function (req, res) {
+        app.get('/index.html', (req: express.Request, res: express.Response): void => {
             res.send('<html><head></head><body><p>index.html</p></body></html>');
         });
-        app.get('/json', function (req, res) {
+        app.get('/json', (req: express.Request, res: express.Response): void => {
             res.send({test: 'ok'});
         });
-        app.get('/test.txt', function (req, res) {
+        app.get('/test.txt', (req: express.Request, res: express.Response): void => {
             res.set('Content-Type', 'text/plain').send('Just a text');
         });
-        app.get('/test', function (req, res) {
+        app.get('/test', (req: express.Request, res: express.Response): void => {
             res.set('Content-Type', 'text/plain').send('Just test');
         });
-        app.get('/notAvailable', function (req, res) {
+        app.get('/notAvailable', (req: express.Request, res: express.Response): void => {
             res.status(404).set('Content-Type', 'text/plain').send('Just test');
         });
-        app.get('/error', function (req, res) {
+        app.get('/error', (req: express.Request, res: express.Response): void => {
             res.status(500).set('Content-Type', 'text/plain').send('An error');
         });
         /*jslint unparam: false*/
 
-        freeport(function (err, p) {
+        freeport((err: Error, p: number): void => {
             if (err) {
                 done(err);
             }
@@ -50,28 +50,29 @@ describe('Mirror Plugin', function () {
             done();
         });
     });
-    describe('Default settings', function () {
-        var webcheck, plugin;
+    describe('Default settings', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
             });
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/mirror-out/', done);
         });
 
-        it('should mirror to default folder', function (done) {
+        it('should mirror to default folder', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/index.html', function (exists) {
+                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/index.html', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -79,14 +80,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should mirror index', function (done) {
+        it('should mirror index', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/index', function (exists) {
+                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/index', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -94,14 +95,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should not ignore the query', function (done) {
+        it('should not ignore the query', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html?test'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/index.html?test', function (exists) {
+                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/index.html?test', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -109,14 +110,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should also work with multiple fields', function (done) {
+        it('should also work with multiple fields', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html?test=yes&aha=no'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/index.html?test=yes&aha=no', function (exists) {
+                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/index.html?test=yes&aha=no', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -124,14 +125,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should not mirror resources with HTTP status codes outside of the 200 area', function (done) {
+        it('should not mirror resources with HTTP status codes outside of the 200 area', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/notAvailable'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/notAvailable', function (exists) {
+                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/notAvailable', (exists: boolean): void => {
                     if (exists) {
                         return done(new Error('File stored'));
                     }
@@ -139,14 +140,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should not mirror resources with HTTP status codes outside of the 200 area (part 2)', function (done) {
+        it('should not mirror resources with HTTP status codes outside of the 200 area (part 2)', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/error'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/error', function (exists) {
+                fs.exists(process.cwd() + '/mirror-out/http/localhost/' + port + '/error', (exists: boolean): void => {
                     if (exists) {
                         return done(new Error('File stored'));
                     }
@@ -155,29 +156,30 @@ describe('Mirror Plugin', function () {
             });
         });
     });
-    describe('Specified destination', function () {
-        var webcheck, plugin;
+    describe('Specified destination', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
                 dest: process.cwd() + '/test-out/'
             });
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/test-out/', done);
         });
 
-        it('should mirror to specified folder', function (done) {
+        it('should mirror to specified folder', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -185,14 +187,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should mirror index', function (done) {
+        it('should mirror index', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -201,11 +203,12 @@ describe('Mirror Plugin', function () {
             });
         });
     });
-    describe('Specified content-type', function () {
-        var webcheck, plugin;
+    describe('Specified content-type', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
                 dest: process.cwd() + '/test-out/',
                 filterContentType: /html/
@@ -213,18 +216,18 @@ describe('Mirror Plugin', function () {
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/test-out/', done);
         });
 
-        it('should mirror matching content-type', function (done) {
+        it('should mirror matching content-type', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -232,14 +235,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should mirror matching content-type without file extension', function (done) {
+        it('should mirror matching content-type without file extension', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -247,14 +250,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should not mirror not matching content-type', function (done) {
+        it('should not mirror not matching content-type', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/test.txt'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test.txt', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test.txt', (exists: boolean): void => {
                     if (exists) {
                         return done(new Error('File stored'));
                     }
@@ -262,14 +265,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should not mirror not matching content-type without file extension', function (done) {
+        it('should not mirror not matching content-type without file extension', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/test'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test', (exists: boolean): void => {
                     if (exists) {
                         return done(new Error('File stored'));
                     }
@@ -278,11 +281,12 @@ describe('Mirror Plugin', function () {
             });
         });
     });
-    describe('Specified status-code', function () {
-        var webcheck, plugin;
+    describe('Specified status-code', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
                 dest: process.cwd() + '/test-out/',
                 filterStatusCode: /^4/
@@ -290,18 +294,18 @@ describe('Mirror Plugin', function () {
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/test-out/', done);
         });
 
-        it('should mirror matching status-code', function (done) {
+        it('should mirror matching status-code', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/notAvailable'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/notAvailable', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/notAvailable', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -309,14 +313,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should not mirror not matching status-code', function (done) {
+        it('should not mirror not matching status-code', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', (exists: boolean): void => {
                     if (exists) {
                         return done(new Error('File stored'));
                     }
@@ -325,30 +329,31 @@ describe('Mirror Plugin', function () {
             });
         });
     });
-    describe('Always add file extension', function () {
-        var webcheck, plugin;
+    describe('Always add file extension', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
-                dest: process.cwd() + '/test-out/',
-                addFileExtension: true
+                addFileExtension: true,
+                dest: process.cwd() + '/test-out/'
             });
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/test-out/', done);
         });
 
-        it('should mirror with additional file extension', function (done) {
+        it('should mirror with additional file extension', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html.html', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html.html', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -356,14 +361,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should mirror index with file extension', function (done) {
+        it('should mirror index with file extension', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -372,11 +377,12 @@ describe('Mirror Plugin', function () {
             });
         });
     });
-    describe('Proof for file extension', function () {
-        var webcheck, plugin;
+    describe('Proof for file extension', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
                 dest: process.cwd() + '/test-out/',
                 proofFileExtension: true
@@ -384,18 +390,18 @@ describe('Mirror Plugin', function () {
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/test-out/', done);
         });
 
-        it('should mirror with additional file extension', function (done) {
+        it('should mirror with additional file extension', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -403,14 +409,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should mirror index with file extension', function (done) {
+        it('should mirror index with file extension', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/test'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test.txt', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test.txt', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -418,14 +424,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should mirror a file with extension and query with additional file extension', function (done) {
+        it('should mirror a file with extension and query with additional file extension', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/test.txt?query=true'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test.txt?query=true.txt', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test.txt?query=true.txt', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -434,11 +440,12 @@ describe('Mirror Plugin', function () {
             });
         });
     });
-    describe('Filter url', function () {
-        var webcheck, plugin;
+    describe('Filter url', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
                 dest: process.cwd() + '/test-out/',
                 filterUrl: /\./
@@ -446,18 +453,18 @@ describe('Mirror Plugin', function () {
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/test-out/', done);
         });
 
-        it('should mirror matching url', function (done) {
+        it('should mirror matching url', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -465,14 +472,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should not mirror not matching url', function (done) {
+        it('should not mirror not matching url', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/test'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test.txt', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/test.txt', (exists: boolean): void => {
                     if (exists) {
                         return done(new Error('File stored'));
                     }
@@ -481,11 +488,12 @@ describe('Mirror Plugin', function () {
             });
         });
     });
-    describe('Specified index name', function () {
-        var webcheck, plugin;
+    describe('Specified index name', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
                 dest: process.cwd() + '/test-out/',
                 indexName: 'default'
@@ -493,18 +501,18 @@ describe('Mirror Plugin', function () {
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/test-out/', done);
         });
 
-        it('should mirror to other index name', function (done) {
+        it('should mirror to other index name', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/default', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/default', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -512,14 +520,14 @@ describe('Mirror Plugin', function () {
                 });
             });
         });
-        it('should mirror none index paths normal', function (done) {
+        it('should mirror none index paths normal', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/index.html'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/index.html', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
@@ -528,11 +536,12 @@ describe('Mirror Plugin', function () {
             });
         });
     });
-    describe('Not ignore query', function () {
-        var webcheck, plugin;
+    describe('Not ignore query', (): void => {
+        var webcheck: Webcheck,
+            plugin: MirrorPlugin;
 
-        before(function () {
-            webcheck = new Webcheck();
+        before((): void => {
+            webcheck = new Webcheck({});
             plugin = new MirrorPlugin({
                 dest: process.cwd() + '/test-out/',
                 ignoreQuery: true
@@ -540,18 +549,18 @@ describe('Mirror Plugin', function () {
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        after(function (done) {
+        after((done: MochaDone): void => {
             rimraf(process.cwd() + '/test-out/', done);
         });
 
-        it('should mirror with query but should not use it in file name', function (done) {
+        it('should mirror with query but should not use it in file name', (done: MochaDone): void => {
             webcheck.crawl({
                 url: 'http://localhost:' + port + '/json?test&aha'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
-                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/json', function (exists) {
+                fs.exists(process.cwd() + '/test-out/http/localhost/' + port + '/json', (exists: boolean): void => {
                     if (exists) {
                         return done();
                     }
