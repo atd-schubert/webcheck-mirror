@@ -1,17 +1,15 @@
 {
-  "compilerOptions": {
-    "target": "es5",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noImplicitAny": false,
-    "removeComments": true,
-    "preserveConstEnums": true,
-    "declaration": true,
-    "sourceMap": true,
-    "outDir": "."
-  },
-  "exclude": [
-    "node_modules",
-    "typings"
-  ]
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es2017",
+        "strict": true,
+        "sourceMap": true,
+        "resolveJsonModule": true,
+        "outDir": ".",
+        "allowSyntheticDefaultImports": true
+    },
+    "exclude": [
+        "node_modules",
+        "example"
+    ]
 }

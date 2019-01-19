@@ -1,16 +1,12 @@
-/// <reference path="./typings/main.d.ts" />
+import { extension } from "mime-types";
+import * as mkdirp from "mkdirp";
+import * as path from "path";
+import * as url from "url";
+import { ICallback, IResult, Plugin as WebcheckPlugin } from "webcheck";
 
-import { Plugin as WebcheckPlugin, IResult, ICallback } from 'webcheck';
-import * as url from 'url';
-import * as path from 'path';
-import * as mime from 'mime';
-import * as mkdirp from 'mkdirp';
+import { createWriteStream, WriteStream } from "fs";
 
-import { createWriteStream, WriteStream } from 'fs';
-
-import * as pkg from './package.json';
-
-
+import * as pkg from "./package.json";
 
 export interface ISimplifiedRegExpr {
     test(txt: string): boolean;
@@ -33,10 +29,10 @@ export interface IMirrorPluginOptions {
  * @private
  * @type {{test: Function}}
  */
-var emptyFilter: ISimplifiedRegExpr = { // a spoofed RegExpr...
+const emptyFilter: ISimplifiedRegExpr = { // a spoofed RegExpr...
     test: (): boolean => {
         return true;
-    }
+    },
 };
 
 /**
@@ -50,7 +46,8 @@ var emptyFilter: ISimplifiedRegExpr = { // a spoofed RegExpr...
  * @param {RegExp|{test:Function}} [opts.filterUrl] - Mirror only matching url
  * @param {boolean} [opts.ignoreQuery=true] - Ignore query part of url when mirroring
  * @param {boolean} [opts.addFileExtension] - Always add a file extension from mime-type in content-type header
- * @param {boolean} [opts.proofFileExtension] - Proof if content-type matches mime-type, otherwise add file extension from content-type header
+ * @param {boolean} [opts.proofFileExtension] - Proof if content-type matches mime-type, otherwise add file extension
+ * from content-type header
  * @param {string} [opts.indexName="index"] - Fallback for index pages
  * @augments WebcheckPlugin
  * @constructor
@@ -59,72 +56,86 @@ var emptyFilter: ISimplifiedRegExpr = { // a spoofed RegExpr...
 export class MirrorPlugin extends WebcheckPlugin {
     public package: any = pkg;
 
-    constructor(opts: IMirrorPluginOptions) {
+    constructor(opts: IMirrorPluginOptions = {}) {
         super();
-        opts = opts || {};
-        opts.dest = opts.dest || process.cwd() + '/mirror-out';
+        const dest = opts.dest || process.cwd() + "/mirror-out";
 
-        opts.filterContentType = opts.filterContentType || emptyFilter;
-        opts.filterStatusCode = opts.filterStatusCode || /^2/;
-        opts.filterUrl = opts.filterUrl || emptyFilter;
+        const contentTypeFilter = opts.filterContentType || emptyFilter;
+        const statusCodeFiler = opts.filterStatusCode || /^2/;
+        const urlFilter = opts.filterUrl || emptyFilter;
 
         opts.addFileExtension = opts.addFileExtension || false;
         opts.proofFileExtension = opts.proofFileExtension || false;
+        opts.ignoreQuery = opts.ignoreQuery || false;
 
-        if (!opts.hasOwnProperty('indexName')) {
-            opts.indexName = 'index';
-        }
-        if (!opts.hasOwnProperty('ignoreQuery')) {
-            opts.ignoreQuery = false;
+        if (!opts.hasOwnProperty("indexName")) {
+            opts.indexName = "index";
         }
 
         this.middleware = (result: IResult, next: ICallback): void => {
-            var pathInfo: path.ParsedPath,
-                urlInfo: url.Url,
-                stream: WriteStream;
+            let pathInfo: path.ParsedPath;
 
-            if (!opts.filterUrl.test(result.url) ||
-                !opts.filterContentType.test(result.response.headers['content-type']) ||
-                !opts.filterStatusCode.test(result.response.statusCode.toString())) {
+            if (!urlFilter.test(result.url) ||
+                !contentTypeFilter.test(result.response.headers["content-type"]!) ||
+                !statusCodeFiler.test(result.response.statusCode.toString())) {
                 return next();
             }
-            urlInfo = url.parse(result.url);
+            const urlInfo = url.parse(result.url);
 
-            urlInfo.protocol = urlInfo.protocol.substring(0, urlInfo.protocol.length - 1); // remove ":" at the end
-            urlInfo.port = urlInfo.port || '';
-            urlInfo.search = urlInfo.search || '';
+            if (!urlInfo.protocol || !urlInfo.hostname) {
+                return next(new Error("Parsing of url failed"));
+            }
+            if (!result.response.headers["content-type"]) {
+                // Fallback to application/octet-stream
+                result.response.headers["content-type"] = "application/octet-stream";
+            }
 
-            if (urlInfo.pathname === '/') {
-                urlInfo.pathname = '/' + opts.indexName;
+            urlInfo.protocol = urlInfo.protocol!.substring(0, urlInfo.protocol.length - 1); // remove ":" at the end
+            urlInfo.port = urlInfo.port || "";
+            urlInfo.search = urlInfo.search || "";
+
+            if (urlInfo.pathname === "/") {
+                urlInfo.pathname = "/" + opts.indexName;
             }
 
             if (opts.addFileExtension) {
-                urlInfo.pathname = urlInfo.pathname + '.' + mime.extension(result.response.headers['content-type']);
+                urlInfo.pathname = urlInfo.pathname + "." + extension(result.response.headers["content-type"]);
             }
 
             if (opts.ignoreQuery) {
-                pathInfo = path.parse(path.resolve(opts.dest, urlInfo.protocol, urlInfo.hostname, urlInfo.port, '.' + urlInfo.pathname));
+                pathInfo = path.parse(
+                    path.resolve(dest, urlInfo.protocol, urlInfo.hostname, urlInfo.port, "." + urlInfo.pathname),
+                );
             } else {
-                pathInfo = path.parse(path.resolve(opts.dest, urlInfo.protocol, urlInfo.hostname, urlInfo.port, '.' + urlInfo.pathname + urlInfo.search));
+                pathInfo = path.parse(
+                    path.resolve(
+                        dest,
+                        urlInfo.protocol,
+                        urlInfo.hostname,
+                        urlInfo.port,
+                        "." + urlInfo.pathname + urlInfo.search,
+                    ),
+                );
             }
 
-            if (opts.proofFileExtension && (pathInfo.ext !== '.' + mime.extension(result.response.headers['content-type']))) {
-                pathInfo.ext += '.' + mime.extension(result.response.headers['content-type']);
+            if (
+                opts.proofFileExtension
+                && (pathInfo.ext !== "." + extension(result.response.headers["content-type"]))
+            ) {
+                pathInfo.ext += "." + extension(result.response.headers["content-type"]);
             }
 
-            mkdirp(pathInfo.dir + '/', (err: Error): void => {
+            mkdirp(pathInfo.dir + "/", (err: Error): void => {
                 if (err) {
                     return next(err);
                 }
                 try {
-                    stream = createWriteStream(path.resolve(pathInfo.dir, pathInfo.name + pathInfo.ext));
+                    const stream = createWriteStream(path.resolve(pathInfo.dir, pathInfo.name + pathInfo.ext));
+                    result.response.pipe(stream);
+                    return next();
                 } catch (error) {
                     return next(error);
                 }
-
-                result.response.pipe(stream);
-
-                return next();
             });
         };
     }
